@@ -10,7 +10,7 @@ import { dark } from "@clerk/themes";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Luna-AI| Unlock Your Potential",
+  title: "Luna-AI | Unlock Your Potential",
   description: "",
 };
 

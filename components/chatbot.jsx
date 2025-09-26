@@ -70,6 +70,7 @@ export default function Chatbot() {
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition"
+          aria-label="Open chat"
         >
           <MessageCircle size={24} />
         </button>
@@ -77,34 +78,33 @@ export default function Chatbot() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-80 bg-white shadow-2xl rounded-2xl border flex flex-col overflow-hidden">
+        <div className="fixed bottom-6 right-6 w-full max-w-sm bg-white shadow-2xl rounded-2xl border flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
             <span className="font-semibold">AI Chatbot</span>
-            <button onClick={() => setIsOpen(false)}>
+            <button onClick={() => setIsOpen(false)} aria-label="Close chat">
               <X size={20} />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-96">
+          <div className="flex-1 p-3 space-y-3 overflow-y-auto max-h-96">
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`p-2 rounded-lg max-w-[80%] whitespace-pre-wrap text-sm ${
+                className={`p-2 rounded-lg max-w-[85%] whitespace-pre-wrap text-sm ${
                   msg.role === "user"
                     ? "bg-blue-100 text-blue-900 ml-auto"
-                    : "bg-gray-100 text-gray-900"
+                    : "bg-gray-100 text-gray-900 prose prose-sm max-w-full" // ✨ FIX: Added `prose` for markdown styling
                 }`}
               >
-                {/* Render Markdown instead of plain text */}
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {msg.content}
                 </ReactMarkdown>
               </div>
             ))}
             {loading && (
-              <div className="p-2 rounded-lg bg-gray-200 text-gray-700 w-fit">
+              <div className="p-2 rounded-lg bg-gray-100 text-gray-500 w-fit text-sm">
                 Typing...
               </div>
             )}
@@ -112,24 +112,32 @@ export default function Chatbot() {
           </div>
 
           {/* Input Box */}
-          <div className="border-t p-2 flex gap-2">
-            <input
-              type="text"
-              className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none"
+          <div className="border-t p-2 flex gap-2 items-start">
+            {/* ✨ FIX: Switched to textarea for multiline support */}
+            <textarea
+              rows="1"
+              className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-50"
               placeholder="Type your message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              disabled={loading} // ✨ FIX: Disable when loading
             />
             <button
               onClick={sendMessage}
-              className="bg-blue-600 text-white px-3 rounded-lg hover:bg-blue-700 transition"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:bg-blue-300"
+              disabled={loading} // ✨ FIX: Disable when loading
             >
               Send
             </button>
           </div>
         </div>
       )}
-    </div>
-  );
+    </div>
+  );
 }

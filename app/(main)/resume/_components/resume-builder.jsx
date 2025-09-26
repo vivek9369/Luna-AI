@@ -25,13 +25,12 @@ import useFetch from "@/hooks/use-fetch";
 import { useUser } from "@clerk/nextjs";
 import { entriesToMarkdown } from "@/app/lib/helper";
 import { resumeSchema } from "@/app/lib/schema";
-//
+
 // We will dynamically import html2pdf inside the generatePDF function
-//
 
 export default function ResumeBuilder({ initialContent }) {
   const [activeTab, setActiveTab] = useState("edit");
-  const [previewContent, setPreviewContent] = useState(initialContent);
+  const [previewContent, setPreviewContent] = useState(initialContent || "");
   const { user } = useUser();
   const [resumeMode, setResumeMode] = useState("preview");
 
@@ -75,10 +74,11 @@ export default function ResumeBuilder({ initialContent }) {
     if (initialContent) setActiveTab("preview");
   }, [initialContent]);
 
+  // When form values change, update the markdown preview content
   useEffect(() => {
     if (activeTab === "edit") {
       const newContent = getCombinedContent();
-      setPreviewContent(newContent ? newContent : initialContent);
+      setPreviewContent(newContent);
     }
   }, [formValues, activeTab]);
 
@@ -117,24 +117,24 @@ export default function ResumeBuilder({ initialContent }) {
     if (contactInfo.github)
       parts.push(`GitHub: [${contactInfo.github}](${contactInfo.github})`);
 
-    return parts.length > 0
-      ? `## <div align="center">**${user.fullName}**</div>
-\n\n<div align="center">\n\n${parts.join(" | ")}\n\n</div>`
+    return parts.length > 0 && user
+      ? `## <div align="center">**${user.fullName}**</div>\n\n<div align="center">\n\n${parts.join(
+          " | "
+        )}\n\n</div>`
       : "";
   };
 
   const getSkillsMarkdown = () => {
-  const { skills } = formValues;
-  let markdown = "";
-  skills.forEach(skill => {
-    if (skill.heading && skill.skills) {
-      if (!markdown) markdown = "## Skills\n\n"; 
-      markdown += `**${skill.heading}:** ${skill.skills}\n\n`;
-    }
-  });
-  return markdown;
-};
-
+    const { skills } = formValues;
+    let markdown = "";
+    skills.forEach((skill) => {
+      if (skill.heading && skill.skills) {
+        if (!markdown) markdown = "## Skills\n\n";
+        markdown += `**${skill.heading}:** ${skill.skills}\n\n`;
+      }
+    });
+    return markdown;
+  };
 
   const getCombinedContent = () => {
     const { summary, experience, education, projects } = formValues;
@@ -154,33 +154,32 @@ export default function ResumeBuilder({ initialContent }) {
 
   const generatePDF = async () => {
     setIsGenerating(true);
+    toast.info("Generating PDF, please wait...");
     try {
-      const html2pdf = (await import("html2pdf.js/dist/html2pdf.min.js")).default;
+      const html2pdf = (await import("html2pdf.js/dist/html2pdf.min.js"))
+        .default;
       const element = document.getElementById("resume-pdf");
       const opt = {
         margin: [15, 15],
         filename: "resume.pdf",
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       };
 
       await html2pdf().set(opt).from(element).save();
     } catch (error) {
       console.error("PDF generation error:", error);
+      toast.error("Failed to generate PDF.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const onSubmit = async (data) => {
+  // This function is triggered by the save button
+  const onSubmit = async () => {
     try {
-      const formattedContent = previewContent
-        .replace(/\n/g, "\n")
-        .replace(/\n\s*\n/g, "\n\n")
-        .trim();
-
-      console.log(previewContent, formattedContent);
+      // The previewContent state already holds the latest markdown string
       await saveResumeFn(previewContent);
     } catch (error) {
       console.error("Save error:", error);
@@ -188,16 +187,20 @@ export default function ResumeBuilder({ initialContent }) {
   };
 
   return (
-    <div data-color-mode="light" className="space-y-4">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+    <div
+      data-color-mode="light"
+      className="space-y-4 w-full max-w-5xl mx-auto"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="font-bold gradient-title text-5xl md:text-6xl">
           Resume Builder
         </h1>
-        <div className="space-x-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="destructive"
             onClick={handleSubmit(onSubmit)}
             disabled={isSaving}
+            aria-label="Save resume"
           >
             {isSaving ? (
               <>
@@ -206,20 +209,24 @@ export default function ResumeBuilder({ initialContent }) {
               </>
             ) : (
               <>
-                <Save className="h-4 w-4" />
+                <Save className="mr-2 h-4 w-4" />
                 Save
               </>
             )}
           </Button>
-          <Button onClick={generatePDF} disabled={isGenerating}>
+          <Button
+            onClick={generatePDF}
+            disabled={isGenerating}
+            aria-label="Download resume as PDF"
+          >
             {isGenerating ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating PDF...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
               </>
             ) : (
               <>
-                <Download className="h-4 w-4" />
+                <Download className="mr-2 h-4 w-4" />
                 Download PDF
               </>
             )}
@@ -229,22 +236,25 @@ export default function ResumeBuilder({ initialContent }) {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="edit">Form</TabsTrigger>
-          <TabsTrigger value="preview">Markdown</TabsTrigger>
+          <TabsTrigger value="edit">Form Editor</TabsTrigger>
+          <TabsTrigger value="preview">Markdown Preview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="edit">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* Using a div instead of form tag to prevent nested forms, letting react-hook-form handle submission */}
+          <div className="space-y-8">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Contact Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
+                  <label className="text-sm font-medium" htmlFor="contact-email">
+                    Email
+                  </label>
                   <Input
+                    id="contact-email"
                     {...register("contactInfo.email")}
                     type="email"
                     placeholder="your@email.com"
-                    error={errors.contactInfo?.email}
                   />
                   {errors.contactInfo?.email && (
                     <p className="text-sm text-red-500">
@@ -253,24 +263,42 @@ export default function ResumeBuilder({ initialContent }) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Mobile Number</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="contact-mobile"
+                  >
+                    Mobile Number
+                  </label>
                   <Input
+                    id="contact-mobile"
                     {...register("contactInfo.mobile")}
                     type="tel"
                     placeholder="+91 1234567890"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">LinkedIn URL</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="contact-linkedin"
+                  >
+                    LinkedIn URL
+                  </label>
                   <Input
+                    id="contact-linkedin"
                     {...register("contactInfo.linkedin")}
                     type="url"
                     placeholder="https://linkedin.com/in/your-profile"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">GitHub URL</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="contact-github"
+                  >
+                    GitHub URL
+                  </label>
                   <Input
+                    id="contact-github"
                     {...register("contactInfo.github")}
                     type="url"
                     placeholder="https://github.com/your-username"
@@ -289,7 +317,6 @@ export default function ResumeBuilder({ initialContent }) {
                     {...field}
                     className="h-32"
                     placeholder="Write a compelling professional summary..."
-                    error={errors.summary}
                   />
                 )}
               />
@@ -325,17 +352,20 @@ export default function ResumeBuilder({ initialContent }) {
               <h3 className="text-lg font-medium">Skills</h3>
               <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="grid grid-cols-3 gap-4">
+                  <div
+                    key={index}
+                    className="grid grid-cols-3 gap-4 items-center"
+                  >
                     <div className="space-y-2 col-span-1">
                       <Input
                         {...register(`skills.${index}.heading`)}
-                        placeholder=""
+                        placeholder="e.g., Languages"
                       />
                     </div>
                     <div className="space-y-2 col-span-2">
                       <Input
                         {...register(`skills.${index}.skills`)}
-                        placeholder=""
+                        placeholder="e.g., JavaScript, Python, SQL"
                       />
                     </div>
                   </div>
@@ -387,39 +417,39 @@ export default function ResumeBuilder({ initialContent }) {
                 )}
               />
             </div>
-          </form>
+          </div>
         </TabsContent>
 
         <TabsContent value="preview">
           {activeTab === "preview" && (
-            <Button
-              variant="link"
-              type="button"
-              className="mb-2"
-              onClick={() =>
-                setResumeMode(resumeMode === "preview" ? "edit" : "preview")
-              }
-            >
-              {resumeMode === "preview" ? (
-                <>
-                  <Edit className="h-4 w-4" />
-                  Edit Resume
-                </>
-              ) : (
-                <>
-                  <Monitor className="h-4 w-4" />
-                  Show Preview
-                </>
+            <div className="flex justify-between items-center mb-2">
+              <Button
+                variant="link"
+                type="button"
+                onClick={() =>
+                  setResumeMode(resumeMode === "preview" ? "edit" : "preview")
+                }
+              >
+                {resumeMode === "preview" ? (
+                  <>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Markdown
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="mr-2 h-4 w-4" />
+                    Show Preview
+                  </>
+                )}
+              </Button>
+              {resumeMode !== "preview" && (
+                <div className="flex p-2 gap-2 items-center border border-yellow-600 text-yellow-600 rounded">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="text-xs">
+                    You will lose markdown edits if you switch back to the form.
+                  </span>
+                </div>
               )}
-            </Button>
-          )}
-
-          {activeTab === "preview" && resumeMode !== "preview" && (
-            <div className="flex p-3 gap-2 items-center border-2 border-yellow-600 text-yellow-600 rounded mb-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span className="text-sm">
-                You will lose edited markdown if you update the form data.
-              </span>
             </div>
           )}
           <div className="border rounded-lg">
@@ -430,13 +460,15 @@ export default function ResumeBuilder({ initialContent }) {
               preview={resumeMode}
             />
           </div>
+          {/* This hidden div is used as the source for PDF generation */}
           <div className="hidden">
-            <div id="resume-pdf">
+            <div id="resume-pdf" className="prose">
               <MDEditor.Markdown
                 source={previewContent}
                 style={{
                   background: "white",
                   color: "black",
+                  padding: "20px",
                 }}
               />
             </div>
