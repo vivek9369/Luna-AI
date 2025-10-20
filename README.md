@@ -1,6 +1,6 @@
 # Luna-AI: Your AI-Powered Career Coach🧠✨
 
-Navigate your career path with an AI advantage. Sensai is an intelligent platform designed to help you achieve your professional goals, from building the perfect resume to acing your next interview.
+Navigate your career path with an AI advantage. Luna-AI is an intelligent platform designed to help you achieve your professional goals, from building the perfect resume to acing your next interview.
 
 ![Sensai Banner](https://raw.githubusercontent.com/himanshu-yadv/sensai/main/public/Banner2.png)
 
