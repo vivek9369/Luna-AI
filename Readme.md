@@ -2,8 +2,6 @@
 
 Navigate your career path with an AI advantage. Luna-AI is an intelligent platform designed to help you achieve your professional goals, from building the perfect resume to acing your next interview.
 
-![Sensai Banner](https://raw.githubusercontent.com/vivek-maurya/luna-ai/main/public/Banner2.png)
-
 ## 🌟 Key Features
 
 * **🤖 AI-Powered Career Guidance:** Get personalized career advice and insights powered by advanced AI technology.
