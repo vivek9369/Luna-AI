@@ -81,7 +81,7 @@ export default function Chatbot() {
         <div className="fixed bottom-6 right-6 w-full max-w-sm bg-white shadow-2xl rounded-2xl border flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
-            <span className="font-semibold">AI Chatbot</span>
+            <span className="font-semibold">Luna-Bot</span>
             <button onClick={() => setIsOpen(false)} aria-label="Close chat">
               <X size={20} />
             </button>
