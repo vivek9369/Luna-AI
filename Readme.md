@@ -11,7 +11,7 @@ Navigate your career path with an AI advantage. Luna-AI is an intelligent platfo
 * **📈 Industry Insights:** Stay ahead of the curve with real-time industry trends, salary data, and market analysis.
 
 ## 🚀 How It Works
-
+ 
 1.  **Onboarding:** Tell us about your industry, experience, and skills.
 2.  **Create:** Build a standout resume and generate tailored cover letters.
 3.  **Prepare:** Hone your interview skills with our adaptive AI-powered quizzes.
